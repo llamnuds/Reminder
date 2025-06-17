@@ -188,7 +188,7 @@ func loadMessagesFromJSONfile() {
 
 // saveMessagesToJSONfile saves the messages to a JSON file.
 func saveMessagesToJSONfile() {
-	if err := PlayMP3("alarm05.mp3"); err != nil {
+	if err := PlayMP3("Alarm05.mp3"); err != nil {
 		logF(err)
 	}
 	jsonBytes, err := json.MarshalIndent(messages, "", "  ")
