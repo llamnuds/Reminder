@@ -1,3 +1,7 @@
+// Package main implements a small web based reminder system. The program
+// serves a list of messages over HTTPS and provides an admin interface for
+// updating those messages. When messages are saved they are persisted to a
+// JSON file and an audible notification is played.
 package main
 
 import (
@@ -63,7 +67,9 @@ func main() {
 	http.HandleFunc("/admin", adminHandler)
 	http.HandleFunc("/update-messages", updateMessagesHandler)
 
-	// SSL/TLS paths can be provided via flags or environment variables
+	// SSL/TLS certificate and key can be supplied either via command
+	// line flags or environment variables. If none are provided, default
+	// file names are used.
 	certFlag := flag.String("cert", "", "path to TLS certificate")
 	keyFlag := flag.String("key", "", "path to TLS key")
 	flag.Parse()
@@ -255,6 +261,9 @@ func getIP(r *http.Request) string {
 
 var otoCtx *oto.Context
 
+// getOtoContext creates the oto audio context on demand and caches it for
+// subsequent calls. The context setup only happens once because creating it
+// repeatedly is expensive and can exhaust system resources.
 func getOtoContext() (*oto.Context, error) {
 	if otoCtx != nil {
 		return otoCtx, nil
@@ -282,6 +291,9 @@ func getOtoContext() (*oto.Context, error) {
 	return otoCtx, nil
 }
 
+// logFMessages iterates through the current message list and prints each
+// message to the log. It is mainly used for debugging and visibility when
+// messages are loaded or saved.
 func logFMessages() {
 	for i, _ := range messages.Messages {
 		m := messages.Messages[i].Text
