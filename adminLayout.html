@@ -1,0 +1,160 @@
+<style>
+    body {
+        background-color: rgb(34, 0, 47);
+    }
+
+
+    .paragraph1 {
+        background-color: yellow; /* Bright background */
+        color: black; /* Dark text */
+        font-size: 60px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .paragraph2 {
+        font-size: 40px;
+        color: darkgreen;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    p {
+        margin-top: 50px;
+        margin-bottom: 50px;
+        cursor: pointer;
+    }
+
+    .center-text {
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .center-text button {
+        display: inline-block;
+        font-size: 25px;
+        padding: 10px 20px;
+        margin-top: -400px;
+        margin-bottom: 20px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 12px;
+    }
+
+    .center-text button:hover {
+        background-color: #45a049;
+        cursor: pointer;
+    }
+
+    .colorPicker {
+        vertical-align: middle;
+        margin-top: -110px;
+        cursor: pointer;
+    }
+
+    p[contenteditable]:focus {
+        border: 2px solid lightblue;
+        background-color: #381f85;
+        cursor: pointer;
+    }
+
+    .paragraph2 {
+    /* Other styles */
+    margin-bottom: 60px; /* Increase bottom margin */
+}
+
+.colorPicker {
+    /* Other styles */
+    margin-top: 20px; /* Adjust top margin */
+    display: block; /* Make color picker a block element */
+}
+
+/* Container for each paragraph and its color picker */
+.paragraph-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Responsive design example */
+@media (max-width: 600px) {
+    .paragraph2 {
+        font-size: 30px;
+    }
+    .colorPicker {
+        margin-top: 10px;
+    }
+}
+
+.flex-container {
+    display: flex;
+    align-items: center; /* Align items vertically */
+    justify-content: space-between; /* Space out items */
+    gap: 10px; /* Space between items */
+}
+
+.paragraph2 {
+    /* Other styles */
+    margin: 0;
+}
+
+.colorPicker {
+    /* Other styles */
+    margin: 0;
+}
+
+
+</style>
+
+<div id="current_date" class="paragraph1"></div>
+
+<ul>
+    {{range .Messages}}
+    <li class="flex-container">
+        <p class="paragraph2" contenteditable="true" style="color: rgb({{.Colour.R}}, {{.Colour.G}}, {{.Colour.B}}, {{.Colour.A}})">{{.Text}}</p>
+        <input type="color" value="{{.HexColour}}" class="colorPicker">
+    </li>
+    {{end}}
+</ul>
+
+
+
+<form class="center-text" id="editForm">
+    <button type="submit">Submit Changes</button>
+    <button type="button" id="cancelBtn">Cancel</button>
+</form>
+
+<script>
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById("current_date").innerHTML = new Date().toLocaleDateString('en-US', options);
+
+    document.getElementById('editForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const paragraphs = document.querySelectorAll('.paragraph2[contenteditable="true"]');
+        const colorPickers = document.querySelectorAll('.colorPicker');
+        let editedMessages = [];
+        paragraphs.forEach((p, index) => {
+            editedMessages.push({
+                text: p.textContent,
+                color: colorPickers[index].value
+            });
+        });
+
+        // Sending edited messages to Go server
+        fetch('/update-messages', {method: 'POST',headers: {'Content-Type': 'application/json'},body: JSON.stringify({ messages: editedMessages })
+        }).then(response => response.json()).then(data => {
+            if (data.success) {
+                location.reload();
+                alert('Messages updated successfully!');
+            } else {
+                alert('Failed to update messages.');
+            }
+        });
+    });
+
+    // Cancel button behavior (reload page to revert changes)
+    document.getElementById('cancelBtn').addEventListener('click', function () {location.reload();});
+</script>

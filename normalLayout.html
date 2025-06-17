@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="480">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Linda</title>
+        <style>
+            .datetime {
+                font-size: 6vw;
+                background-color: rgb(12, 145, 0); /* Bright background */
+                color: black; /* Dark text */
+                text-align: center;
+                cursor: none
+            }
+
+            @keyframes moveSideToSide {
+                0%, 100% {transform: translateX(0);}
+                1.19% {transform: translateX(-100px);}
+                2.38% {transform: translateX(100px);}
+                3.57% {transform: translateX(0);}
+            }
+
+            .paragraph2 {
+                font-size: 11vw;
+                text-align: center;
+                animation: moveSideToSide 200s infinite;
+                cursor: none;
+                margin-bottom: 20px; /* Adjust as needed */
+            }
+
+            .message-container {
+                max-height: 100vh; /* Set to the height of the viewport */
+                overflow: hidden; /* Hide overflow initially */
+                position: relative; /* Needed for the scrolling effect */
+                padding-bottom: 50%;
+            }
+            
+            .message-container::after {
+                content: '';
+                display: block;
+                height: 30em;
+            }
+
+            .message-container::before {
+                content: '';
+                display: block;
+                height: 15em;
+            }
+
+            body {
+                background-color: rgb(20, 0, 20);
+                cursor: none;
+                overflow-y: hidden; /* This line will hide the vertical scrollbar */
+            }
+
+            @keyframes flashBackground {
+                0%, 100% {background-color: white;}
+                50% {background-color: red;}
+            }
+
+            p {
+                margin-top: 50px;
+                margin-bottom: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="current_date" class="datetime"></div>
+        <div class="message-container">
+            <ul>
+                {{range .Messages}}
+                <p class="paragraph2" style="color: rgb({{.Colour.R}}, {{.Colour.G}}, {{.Colour.B}}, {{.Colour.A}})">{{.Text}}</p>
+                {{end}}
+            </ul>
+        </div>
+
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Set the timeout to show messages before hiding them
+                setTimeout(hideMessages, 120000); // 2 Minutes
+
+                function hideMessages() {
+                    // Hide all message elements
+                    document.querySelectorAll('.paragraph2').forEach(function (msg) {
+                        msg.style.display = 'none';
+                    });
+                }
+        
+                // Always display the date
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById("current_date").innerHTML = new Date().toLocaleDateString('en-US', options);
+            });
+
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {containerHeight = container.clientHeight;contentHeight = container.scrollHeight;}, 250);
+                // Adjust debounce time as needed
+            });
+
+            function flashBackground() {
+                if (!document.body.style.animation) {document.body.style.animation = "flashBackground 1s infinite";
+                    setTimeout(() => {document.body.style.animation = "";}, 4000);
+                }
+            }
+
+            function storeContent() {
+                let content = '';
+                document.querySelectorAll(".paragraph2").forEach(el => {content += el.textContent;});
+                localStorage.setItem('previousContent', content);
+            }
+
+            function contentChanged() {
+                let currentContent = '';
+                document.querySelectorAll(".paragraph2").forEach(el => {currentContent += el.textContent;});
+                const previousContent = localStorage.getItem('previousContent');
+                return previousContent !== currentContent;
+            }
+
+            setTimeout(function () {if (contentChanged()) {flashBackground();storeContent();}}, 2000);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById("current_date").innerHTML = new Date().toLocaleDateString('en-US', options);
+
+            function applyAutoScroll() {
+                const container = document.querySelector('.message-container');
+                let contentHeight = container.scrollHeight;
+                const containerHeight = container.clientHeight;
+
+                let scrollStepDown = 3; // Speed for scrolling down, adjust as needed
+                let scrollStepUp = 60; // Speed for scrolling up, adjust as needed
+                let scrollStep = scrollStepDown;
+                let isPaused = false;
+                const pauseDuration = 8000;
+
+            setInterval(() => {contentHeight = container.scrollHeight;}, 8000);
+
+            function scrollContent() {
+                if (!isPaused) {
+                    container.scrollTop += scrollStep;
+
+                    if (container.scrollTop + containerHeight >= contentHeight || container.scrollTop <= 0) {
+                        isPaused = true;
+                        setTimeout(() => {
+                            isPaused = false;
+                            scrollStep = (scrollStep === scrollStepDown) ? -scrollStepUp : scrollStepDown;
+                        }, pauseDuration);
+                    }
+                }
+            }
+
+            setInterval(scrollContent, 50);
+            }
+
+            document.addEventListener('DOMContentLoaded', applyAutoScroll);
+        </script>
+    </body>
+</html>
