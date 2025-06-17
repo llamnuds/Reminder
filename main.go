@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"html/template"
 	"image/color"
@@ -62,9 +63,28 @@ func main() {
 	http.HandleFunc("/admin", adminHandler)
 	http.HandleFunc("/update-messages", updateMessagesHandler)
 
-	// SSL/TLS paths
-	certPath := "C:\\Certbot\\live\\llamnuds.mywire.org\\fullchain.pem"
-	keyPath := "C:\\Certbot\\live\\llamnuds.mywire.org\\privkey.pem"
+	// SSL/TLS paths can be provided via flags or environment variables
+	certFlag := flag.String("cert", "", "path to TLS certificate")
+	keyFlag := flag.String("key", "", "path to TLS key")
+	flag.Parse()
+
+	certPath := *certFlag
+	if certPath == "" {
+		certPath = os.Getenv("CERT_PATH")
+	}
+	if certPath == "" {
+		logF("CERT_PATH not set. Using default cert.pem")
+		certPath = "cert.pem"
+	}
+
+	keyPath := *keyFlag
+	if keyPath == "" {
+		keyPath = os.Getenv("KEY_PATH")
+	}
+	if keyPath == "" {
+		logF("KEY_PATH not set. Using default key.pem")
+		keyPath = "key.pem"
+	}
 
 	// Start the HTTP server
 	logF("Starting Web server on port 443.")
