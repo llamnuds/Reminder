@@ -267,8 +267,19 @@ func getOtoContext() (*oto.Context, error) {
 	}
 
 	var err error
-	otoCtx, _, err = oto.NewContext(op)
-	return otoCtx, err
+	var ready func() error
+	otoCtx, ready, err = oto.NewContext(op)
+	if err != nil {
+		return nil, err
+	}
+
+	if ready != nil {
+		if err = ready(); err != nil {
+			return nil, err
+		}
+	}
+
+	return otoCtx, nil
 }
 
 func logFMessages() {
