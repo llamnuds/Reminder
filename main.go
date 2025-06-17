@@ -23,11 +23,13 @@ import (
 	"github.com/hajimehoshi/go-mp3"
 )
 
-// Fixed username and password constants
-const (
-	adminUsername = "hasting"
-	adminPassword = "holidays"
-)
+// AppConfig holds the application configuration, typically loaded from config.json.
+type AppConfig struct {
+	AdminUsername string `json:"adminUsername"`
+	AdminPassword string `json:"adminPassword"`
+}
+
+var appConfig AppConfig
 
 // MessageData contains the list of messages to be shown to the user.
 type MessageData struct {
@@ -53,6 +55,16 @@ var messages = MessageData{
 
 // main is the entry point for the program.
 func main() {
+	// Load configuration from config.json
+	configFile, err := os.ReadFile("config.json")
+	if err != nil {
+		log.Fatalf("Failed to read config.json: %v", err)
+	}
+	err = json.Unmarshal(configFile, &appConfig)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal config.json: %v", err)
+	}
+
 	// Load messages from JSON file if it exists, otherwise save default messages.
 	if fileExists("messages.json") {
 		logF("Loading messages.")
@@ -93,8 +105,8 @@ func main() {
 	}
 
 	// Start the HTTP server
-	logF("Starting Web server on port 443.")
-	log.Fatal(http.ListenAndServeTLS(":443", certPath, keyPath, nil))
+	logF("Starting Web server on port 8443.")
+	log.Fatal(http.ListenAndServeTLS(":8443", certPath, keyPath, nil))
 }
 
 // HexColour returns the color of a message in hexadecimal format.
@@ -105,8 +117,13 @@ func (m Message) HexColour() string {
 // checkAdminCredentials verifies if the provided BasicAuth credentials are valid.
 func checkAdminCredentials(r *http.Request) bool {
 	username, password, ok := r.BasicAuth()
-	logF("Authentication for '" + username + "' = " + fmt.Sprint(ok && username == adminUsername && password == adminPassword))
-	return ok && username == adminUsername && password == adminPassword
+	if !ok {
+		logF("Authentication failed: Basic Auth not provided by " + r.RemoteAddr)
+		return false
+	}
+	isAuthenticated := username == appConfig.AdminUsername && password == appConfig.AdminPassword
+	logF("Authentication for '" + username + "' from " + r.RemoteAddr + " = " + fmt.Sprint(isAuthenticated))
+	return isAuthenticated
 }
 
 // updateMessagesHandler handles updating the message content via POST requests.
@@ -276,16 +293,15 @@ func getOtoContext() (*oto.Context, error) {
 	}
 
 	var err error
-	var ready func() error
-	otoCtx, ready, err = oto.NewContext(op)
+	var readyChan chan struct{}
+	otoCtx, readyChan, err = oto.NewContext(op)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("oto.NewContext failed: %w", err)
 	}
 
-	if ready != nil {
-		if err = ready(); err != nil {
-			return nil, err
-		}
+	// Wait for the audio context to be ready.
+	if readyChan != nil {
+		<-readyChan
 	}
 
 	return otoCtx, nil
